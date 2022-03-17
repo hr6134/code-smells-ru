@@ -26,19 +26,19 @@
 чек лист и просматривать его каждый раз когда вы делаете код ревью для коллеги или отправляете на ревью свой код.
 
 ### Содержание
-[Переменные без инициализации](#var-without-initializations)  
-[Строки как значения](#strings-as-values)
-[Примитивные типы данных](#primitive-types)
-[Длинные условия](#long-conditions)
-[Функции с множеством примитивных параметров](#too-much-parameters)
-[Сайд эффекты в функциях](#side-effects)
-[Break, continue, return и другие вариации goto внутри циклов и условий](#goto)
-[Вложенные условия](#nested-ifs)
-[Длинные циклы](#long-loops)
-[Рекурсия](#recursion)
-[Несоответствие названию](#wrong-naming)
-[Функция решает больше чем одну проблему](#multiple-purpose-functions)
-[Сеттеры](#setters)
+- [Переменные без инициализации](#var-without-initializations)  
+- [Строки как значения](#strings-as-values)
+- [Примитивные типы данных](#primitive-types)
+- [Длинные условия](#long-conditions)
+- [Функции с множеством примитивных параметров](#too-much-parameters)
+- [Сайд эффекты в функциях](#side-effects)
+- [Break, continue, return и другие вариации goto внутри циклов и условий](#goto)
+- [Вложенные условия](#nested-ifs)
+- [Длинные циклы](#long-loops)
+- [Рекурсия](#recursion)
+- [Несоответствие названию](#wrong-naming)
+- [Функция решает больше чем одну проблему](#multiple-purpose-functions)
+- [Сеттеры](#setters)
 
 <a name="var-without-initializations"/>
 ## Переменные без инициализации
