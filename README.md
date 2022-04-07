@@ -838,3 +838,67 @@ class Address {
     private String flat;
 }
 ```
+
+Последний, но не менее возможный вариант  валидация при создании. Например с одним из моих любимейших 
+паттернов Builder. Мы собираем все необходимые поля по частям, но прежде чем создать объект Route 
+проверяет наши инварианты.
+
+```java
+class Route {
+    private final Optional<String> courseNumber;
+    private final Optional<String> lessonNumber;
+    private final Optional<String> cardNumber;
+
+    public Route(
+            Optional<String> courseNumber,
+            Optional<String> lessonNumber,
+            Optional<String> cardNumber)
+    {
+        this.courseNumber = courseNumber;
+        this.lessonNumber = lessonNumber;
+        this.cardNumber = cardNumber;
+    }
+
+    public class Builder {
+        private String courseNumber;
+        private String lessonNumber;
+        private String cardNumber;
+
+        public Builder setCourseNumber(String courseNumber) {
+            this.courseNumber = courseNumber;
+            return this;
+        }
+
+        public Builder setLessonNumber(String lessonNumber) {
+            this.lessonNumber = lessonNumber;
+            return this;
+        }
+
+        public Builder setCardNumber(String cardNumber) {
+            this.cardNumber = cardNumber;
+            return this;
+        }
+
+        public Route build() {
+            if (this.cardNumber != null 
+                    && (this.lessonNumber == null || this.courseNumber == null)) {
+                throw new IllegalStateException(
+                        "Card number can't be set without lesson and course numbers"
+                );
+            }
+
+            if (this.lessonNumber != null && this.courseNumber == null) {
+                throw new IllegalStateException(
+                        "Lesson number can't be set without course numbers"
+                );
+            }
+
+            return new Route(
+                    Optional.ofNullable(this.courseNumber),
+                    Optional.ofNullable(this.lessonNumber),
+                    Optional.ofNullable(this.cardNumber)
+            );
+        }
+    }
+}
+```
