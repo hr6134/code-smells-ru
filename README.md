@@ -39,6 +39,7 @@
 - [Несоответствие названию](#wrong-naming)
 - [Функция решает больше чем одну проблему](#multiple-purpose-functions)
 - [Сеттеры](#setters)
+- [Опциональные поля/типы](#optionals)
 
 <a name="var-without-initializations"/>
 
@@ -520,6 +521,8 @@ const copyGood = (list) => {
   return new MyList(result, result.length);
 }
 ```
+Помните, что forEach - это такой же цикл, который часто приезжает в язык с map/filter/reduce, 
+и мимикрирует под функциональщину. Он не функциональный, к нему применяются такие же правила как и к циклам.
 
 <a name="recursion"/>
 
@@ -664,3 +667,174 @@ streamProvider.push([1, 2, 3]);
    вот такое значение", если после проставления значения произойдёт что-то ещё (а у тебя произойдёт), то назови метод
    соответствующе
 
+<a name="optionals"/>
+
+## Опциональные поля/типы
+Практически в каждом языке программирования и базе данных, есть возможность объявлять опциональные поля. 
+Это может быть что-то олд скульное, когда мы разрешаем null или новомодные монады Optional, Maybe, или даже 
+поддерживаемые языком конструкции:
+
+```typescript
+export interface TRouteParams {
+   courseNumber?: string;
+   lessonNumber?: string;
+   cardNumber?: string;
+   courseId?: string;
+   lessonId?: string;
+   cardId?: string;
+}
+```
+
+### Проблема
+
+Проблема практически такая же как и в “переменные без инициализации”, мы не знаем есть ли у поля значение или нет. 
+И если его нет, то что это значит. В примере выше мы можем получить структуру с произвольной комбинацией полей. 
+Нас это устраивает? Всегда ли это имеет смысл? А если часть комбинаций невалидна, то как мы это проверим?
+
+### Способы борьбы
+
+Многие языки начинают поддерживать алгебраические типы данных, TS тоже в какой-то степени это делает. 
+Через них всегда можно описать возможные комбинации полей.
+
+https://en.wikipedia.org/wiki/Algebraic_data_type
+https://www.typescriptlang.org/docs/handbook/advanced-types.html#discriminated-unions
+
+Предположим вам не повезло и такой возможности нет. Всегда есть вариант с изменением интерфейса. Мы делаем 
+интерфейс, которые умеет возвращать данные в каком-то агрегированном виде,  в примере ниже это строка, и 
+реализации интерфейса, которые хранят разные комбинации полей. Важно помнить, что, если этот агрегированный 
+вид изначально был результатом какой-то сложной логики, то стоит сделать отдельный класс для его вычисления 
+и передавать его через инъекцию зависимостей.
+
+```java
+public interface Route {
+    String getRoute();
+}
+
+class CourseRoute implements Route {
+    private final String courseNumber;
+
+    public CourseRoute(String courseNumber) {
+        this.courseNumber = courseNumber;
+    }
+
+    @Override
+    public String getRoute() {
+        return courseNumber;
+    }
+}
+
+class LessonRoute implements Route {
+    private final String courseNumber;
+    private final String lessonNumber;
+
+    LessonRoute(String courseNumber, String lessonNumber) {
+        this.courseNumber = courseNumber;
+        this.lessonNumber = lessonNumber;
+    }
+
+    @Override
+    public String getRoute() {
+        return String.format("%s/%s", courseNumber, lessonNumber);
+    }
+}
+
+class Usage {
+    public void use() {
+        Route courseRoute = new CourseRoute("12"); 
+        Route lessonRoute = new LessonRoute("12", "42");
+        System.out.println(courseRoute.getRoute());
+        System.out.println(lessonRoute.getRoute());
+    }
+}
+```
+
+Если менять интерфейс не хочется, например, не получается придумать удобный для использования. 
+Или комбинаций полей очень много и вносить в каждую из них RouteCalculator для получения агрегата 
+лишь усложняет код, можно использовать приведение типов. Приведение типов в целом сам по себе запах, 
+который может привести к ошибкам в рантайме, но если вы сможете гарантировать инвариант, то почему нет. 
+Мы всё ещё наследуемся от общего интерфейса, но только для того чтобы уметь отдавать тип нашего класса. 
+С помощью типа мы понимаем к какому классу нам надо привестись, чтобы получить доступ ко всем полям.
+
+```java
+public enum RouteTypes {
+    COURSE_TYPE,
+    LESSON_TYPE,
+    ;
+}
+
+public interface Route {
+    RouteTypes getType();
+}
+
+class CourseRoute implements Route {
+    public final String courseNumber;
+
+    public CourseRoute(String courseNumber) {
+        this.courseNumber = courseNumber;
+    }
+
+    @Override
+    public RouteTypes getType() {
+        return RouteTypes.COURSE_TYPE;
+    }
+}
+
+class LessonRoute implements Route {
+    public final String courseNumber;
+    public final String lessonNumber;
+
+    LessonRoute(String courseNumber, String lessonNumber) {
+        this.courseNumber = courseNumber;
+        this.lessonNumber = lessonNumber;
+    }
+
+    @Override
+    public RouteTypes getType() {
+        return null;
+    }
+}
+
+class Usage {
+    public void use(Route route) {
+        switch (route.getType()) {
+            case COURSE_TYPE: processCourseRoute((CourseRoute)route);
+            case LESSON_TYPE: processLessonRoute((LessonRoute)route);
+            default: throw new IllegalArgumentException("Unsupported type: " + route.getType());
+        }
+    }
+    
+    private void processCourseRoute(CourseRoute route) {}
+    private void processLessonRoute(LessonRoute route) {}
+}
+```
+
+Оба варианта выглядят многословно. Третий подход уменьшает количество опциональных полей через
+отдельные классы. В примере ниже мы выносим адрес в отдельный класс. В первом варианте мы гарантировали
+наличие имени и фамилии, но адрес мог состоять из произвольного набора полей, например у нас могла быть 
+только квартира. Во второй варианте адрес или есть или нет, но если он есть, то мы точно знаем что в нём есть все поля.
+
+```java
+class BadProfile {
+    private String firstName;
+    private String lastName;
+    private Optional<String> country;
+    private Optional<String> city;
+    private Optional<String> street;
+    private Optional<String> house;
+    private Optional<String> flat;
+}
+
+class GoodProfile {
+    private String firstName;
+    private String lastName;
+    private Optional<Address> address;
+}
+
+class Address {
+    private String country;
+    private String city;
+    private String street;
+    private String house;
+    private String flat;
+}
+```
